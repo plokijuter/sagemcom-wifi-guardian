@@ -1,0 +1,6 @@
+*.exe
+/sagemcom-wifi-guardian
+*.log
+config.json
+state.json
+dist/

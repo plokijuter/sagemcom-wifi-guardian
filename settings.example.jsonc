@@ -1,0 +1,63 @@
+// sagemcom-wifi-guardian settings. JSON, with // comments allowed.
+// `guard` reads every xpath below and writes the value back when the router has drifted away
+// from it (reboot, operator push over TR-069, firmware update).
+//
+// Rules are applied in this order. On 5 GHz keep: blacklist, then auto channel, then width, then channel.
+// Values are sent as text, exactly as written ("True", "160MHz"). Comparison ignores case, except for
+// network names (SSID).
+// "wait": how long a difference must last before it is corrected. At most one correction per rule per hour.
+//
+// These are the settings validated on a Bell Giga Hub (F@st 5690) in CANADA (regulatory domain CA/0).
+// Channel numbers depend on the country: check yours with `options` (PossibleChannels) before using them.
+{
+  "rules": [
+    // 5 GHz channel blacklist. The factory list was
+    //   36,40,48,52,56,64,104,108,112,116,136,140,144,149,153,161,165
+    // A 160 MHz channel on 5 GHz needs a whole block of eight 20 MHz channels: 36-64 or 100-128.
+    // 100-128 is broken by 104-116 in this list, and with 36..64 also blacklisted there is no block left:
+    // the router silently stays at 80 MHz whatever the width says. So 36 to 64 are removed from the
+    // list; the rest of the factory list is kept.
+    { "name": "5 GHz channel blacklist",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO5G']/BlackListedChannels",
+      "value": "104,108,112,116,136,140,144,149,153,161,165" },
+
+    // Automatic channel off, otherwise the router moves away from the channel chosen below.
+    { "name": "5 GHz automatic channel",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO5G']/AutoChannelEnable",
+      "value": "False" },
+
+    // Write "160MHz", not "160" (refused with XMO_ENUM_ERR).
+    // CurrentOperatingChannelBandwidth was seen stuck at 80MHz while 160 MHz worked: check with `clients`.
+    { "name": "5 GHz channel width",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO5G']/OperatingChannelBandwidth",
+      "value": "160MHz" },
+
+    // Channel 44 = 160 MHz block 36-64, whose upper half (52-64) is DFS. After a radar detection the
+    // radio must leave and the channel is banned for 30 minutes, hence the 35-minute wait.
+    { "name": "5 GHz channel",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO5G']/Channel",
+      "value": "44",
+      "wait": "35m" },
+
+    { "name": "5 GHz beamforming",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO5G']/TransmitBeamForming",
+      "value": "True" },
+
+    // GreenAP turns radio chains off when traffic is low; it was on by default on 6 GHz only.
+    { "name": "6 GHz GreenAP power saving",
+      "xpath": "Device/WiFi/Radios/Radio[Alias='RADIO6G']/GreenAPEnabled",
+      "value": "False" }
+
+    // OPTIONAL: a separate name for the 6 GHz network (main name + "-6G", computed at start-up).
+    // Why: the same name is broadcast in WPA2 on 2.4/5 GHz and in WPA3 with mandatory MFP on 6 GHz.
+    // iPhones then switch bands under one name and get refused (an "incorrect login" error); at home 90 %
+    // of 6 GHz connections lasted less than 10 s. With its own name, 6 GHz devices join it on purpose.
+    // Your SSID aliases may differ: list them with `dump Device/WiFi/SSIDs`.
+    // To enable it, uncomment the five lines below, the lone comma included:
+    // ,
+    // { "name": "6 GHz network name",
+    //   "xpath": "Device/WiFi/SSIDs/SSID[Alias='WL_PRIV_6G']/SSID",
+    //   "copy_from": "Device/WiFi/SSIDs/SSID[Alias='WL_PRIV']/SSID",
+    //   "suffix": "-6G" }
+  ]
+}
