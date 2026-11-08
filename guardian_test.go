@@ -57,7 +57,7 @@ func TestExampleSettings(t *testing.T) {
 	}
 	// the commented-out 6 GHz rule must parse once uncommented
 	on := strings.NewReplacer("    // ,\n", "    ,\n", "    // { \"name\": \"6 GHz", "    { \"name\": \"6 GHz",
-		"    //   \"", "    \"").Replace(string(exampleSettings))
+		"    //   \"", "    \"").Replace(strings.ReplaceAll(string(exampleSettings), "\r\n", "\n")) // CRLF on a Windows checkout
 	s, err := ParseSettings([]byte(on))
 	if err != nil || len(s.Rules) != 7 || s.Rules[6].Suffix != "-6G" || s.Rules[6].CopyFrom == "" {
 		t.Fatalf("6 GHz option: %v %+v", err, s)
